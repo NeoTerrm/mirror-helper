@@ -9,58 +9,54 @@ fi
 
 echo "Cleaning old debs in $debs"
 
-function package_id() {
-	local text="$(basename $1)"
-	echo "${text%.*}"
-}
-
 function package_name() {
-	local id="$1"
-	echo "$id" | cut -d'_' -f1
+	local file="$1"
+	dpkg-deb --info $file | grep Package: | cut -d':' -f2 | sed 's| ||g'
 }
 
 function package_version() {
-	local id="$1"
-	echo "$id" | cut -d'_' -f2
+	local file="$1"
+	dpkg-deb --info $file | grep Version: | cut -d':' -f2 | sed 's| ||g'
 }
 
 function package_arch() {
-	local id="$1"
-	echo "$id" | cut -d'_' -f3
+	local file="$1"
+	dpkg-deb --info $file | grep Architecture: | cut -d':' -f2 | sed 's| ||g'
 }
 
 declare -A aarch64_PKG
 declare -A x86_64_PKG
 declare -A arm_PKG
 declare -A i686_PKG
+declare -A all_PKG
 
 for pkg_file in $debs/*.deb; do
-	id="$(package_id $pkg_file)"
-	package_name="$(package_name $id)"
-	package_arch="$(package_arch $id)"
-	package_version="$(package_version $id)"
+	package_name="$(package_name $pkg_file)"
+	package_arch="$(package_arch $pkg_file)"
+	package_version="$(package_version $pkg_file)"
 	
+# echo "Checking for $package_name @ $package_arch - $package_version"
 	declare -n T="${package_arch}_PKG"
 
 	if [[ "${T[$package_name]}" == "" ]]; then
-		T[$package_name]="$id"
+		T["$package_name"]="$pkg_file"
 		continue
 
 	else
-		prev_id="${T[$package_name]}"
-		prev_version="$(package_version $prev_id)"
+		prev_file="${T["$package_name"]}"
+		prev_version="$(package_version $prev_file)"
 
 		./compare-version.sh "$package_version" "$prev_version" &>/dev/null
-		case $? in
+		retval=$?
+		case $retval in
 			0 ) # Package version is the same.
 				;;
 			2 ) # package_version < prev_version
 				;;
 			1 ) # package_version > prev_version
-				T[$package_name]="$id"
-				old_package_file="$debs/$prev_id.deb"
-				echo "  Replacing $package_name@$package_arch: $package_version, deleting old: $prev_version"	
-				rm $old_package_file
+				T["$package_name"]="$pkg_file"
+				echo "  Replacing $package_name @ $package_arch: $package_version, deleting old one: $prev_version ($prev_file)"	
+				rm -f "$prev_file"
 				;;
 		esac
 	fi

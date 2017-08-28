@@ -7,6 +7,12 @@ if [[ "$debs" == "" ]]; then
 	exit
 fi
 
+line_width="$(stty size | cut -d' ' -f2)"
+
+function clear_line() {
+    printf "\r%*c\r" "$line_width" '*'
+}
+
 for i in $debs/*.deb; do
 	for arch in aarch64 all x86_64 arm; do
 		dir="dists/stable/main/binary-$arch"
@@ -30,8 +36,12 @@ for i in $debs/*.deb; do
 				info_text="New"
 				cp "$i" "$target"
 			fi
-
-			printf "  %-8s\t%-8s\t%s\n" "$info_text" "$arch" "$pkg_name"
+            
+            clear_line
+			printf "\r  %-8s\t%-8s\t%s" "$info_text" "$arch" "$pkg_name"
+            if [[ "$info_text" == "New" ]]; then
+                echo
+            fi
 			break
 		fi
 	done

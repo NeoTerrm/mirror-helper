@@ -23,5 +23,5 @@ elif comparison_result == 0:
 	operator = ' == '
 
 print(version1 + operator + version2)
-exit(comparison_result)
+exit(ret)
 
