@@ -39,11 +39,12 @@ for i in $debs/*.deb; do
             
             clear_line
 			printf "\r  %-8s\t%-8s\t%s" "$info_text" "$arch" "$pkg_name"
-            if [[ "$info_text" == "New" ]]; then
+            if [[ "$info_text" == "New" || "$info_text" == "Update" ]]; then
                 echo
             fi
 			break
 		fi
 	done
 done
+echo
 
